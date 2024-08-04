@@ -954,34 +954,29 @@ function RayfieldLibrary:CreateWindow(Settings)
 		end
 	end
 
--- Define a function to read keys from a file
-local function readKeysFromFile(filename)
-    local keys = {}
-    if isfile(filename) then
-        local fileContent = readfile(filename)
-        for line in fileContent:gmatch("[^\r\n]+") do
-            local key = line:match('"(.-)"')
-            if key then
-                table.insert(keys, key)
-            end
-        end
-    end
-    return keys
-end
+	if Settings.KeySystem then
+		if not Settings.KeySettings then
+			Passthrough = true
+			return
+		end
 
--- Load keys from file
-local keyFilePath = RayfieldFolder.."/Key System/keys.txt" -- Replace with your actual file path
-Settings.KeySettings.Key = readKeysFromFile(keyFilePath)
+		if not isfolder(RayfieldFolder.."/Key System") then
+			makefolder(RayfieldFolder.."/Key System")
+		end
 
-if Settings.KeySystem then
-    if not Settings.KeySettings then
-        Passthrough = true
-        return
-    end
+		if typeof(Settings.KeySettings.Key) == "string" then Settings.KeySettings.Key = {Settings.KeySettings.Key} end
 
-    if not isfolder(RayfieldFolder.."/Key System") then
-        makefolder(RayfieldFolder.."/Key System")
-    end
+		if Settings.KeySettings.GrabKeyFromSite then
+			for i, Key in ipairs(Settings.KeySettings.Key) do
+				local Success, Response = pcall(function()
+					Settings.KeySettings.Key[i] = tostring(game:HttpGet(Key):gsub("[\n\r]", " "))
+					Settings.KeySettings.Key[i] = string.gsub(Settings.KeySettings.Key[i], " ", "")
+				end)
+				if not Success then
+					print("Rayfield | "..Key.." Error " ..tostring(Response))
+				end
+			end
+		end
 
     if typeof(Settings.KeySettings.Key) == "string" then
         Settings.KeySettings.Key = {Settings.KeySettings.Key}
@@ -1001,9 +996,10 @@ if Settings.KeySystem then
         end
     end
 
-    if not Settings.KeySettings.FileName then
-        Settings.KeySettings.FileName = "No file name specified"
-    end
+		if not Passthrough then
+			local AttemptsRemaining = math.random(2,6)
+			Rayfield.Enabled = false
+			local KeyUI = game:GetObjects("rbxassetid://11380036235")[1]
 
     local keyFilePath = RayfieldFolder.."/Key System/"..Settings.KeySettings.FileName..ConfigurationExtension
 
